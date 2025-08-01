@@ -98,7 +98,7 @@ export function Logs({ onNavigate }: LogsProps) {
   }
 
   return (
-    <div className="p-8 max-w-7xl">
+    <div className="p-8 max-w-7xl ml-64">
       <div className="mb-6">
         <Button 
           variant="ghost" 

@@ -14,11 +14,14 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   ]
 
   return (
-    <div className="p-8 max-w-6xl">
+    <div className="p-8 max-w-6xl ml-64">
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-slate-900 mb-3">
-          Welcome to BalletCron 🩰
-        </h1>
+        <div className="flex items-center gap-4 mb-3">
+          <h1 className="text-3xl font-semibold text-slate-900">
+            Welcome to BalletCron
+          </h1>
+          <img src="/BalletCron_Logo.png" alt="BalletCron Logo" className="w-32 h-32 object-contain" />
+        </div>
         <p className="text-slate-600 text-lg max-w-2xl">
           BalletCron is a cloud-native task scheduler that lets you automate HTTP tasks 
           with precision and elegance. Schedule, monitor, and manage your automated workflows 

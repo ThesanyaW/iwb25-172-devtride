@@ -1,9 +1,22 @@
+import { useState } from "react";
+import { Dashboard } from "./components/Dashboard";
+import { Sidebar } from "./components/Sidebar";
+import { CreateTask } from "./components/CreateTask";
+import { Logs } from "./components/Logs";
+import { ScheduledTasks } from "./components/ScheduledTasks";
+
 function App() {
+  const [page, setPage] = useState("/");
+
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <h1 className="text-3xl font-bold text-blue-600">
-        Welcome to BalletCron!
-      </h1>
+    <div className="min-h-screen bg-slate-50 flex">
+      <Sidebar activeRoute={page} onNavigate={setPage} />
+      <main className="flex-1 flex items-center justify-center">
+        {page === "/" && <Dashboard onNavigate={setPage} />}
+        {page === "/create" && <CreateTask onNavigate={setPage} />}
+        {page === "/tasks" && <ScheduledTasks onNavigate={setPage} />}
+        {page === "/logs" && <Logs onNavigate={setPage} />}
+      </main>
     </div>
   );
 }
