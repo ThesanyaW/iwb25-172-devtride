@@ -9,3 +9,6 @@ type Task record {|
     string description?; // optional description
     string status = "pending"; // default value is "pending"
 |};
+
+// Temporary in-memory "database"
+isolated final Task[] tasks = [];
