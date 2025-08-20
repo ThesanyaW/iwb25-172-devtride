@@ -19,15 +19,43 @@ export function CreateTask({ onNavigate }: CreateTaskProps) {
     jsonPayload: '{\n  "message": "Hello from BalletCron"\n}'
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Mock task creation
-    alert("Task scheduled successfully!")
-    onNavigate("/tasks")
+
+    try {
+      const response = await fetch("http://localhost:8080/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: Date.now(), // temporary unique ID
+          title: formData.taskName,
+          description: `Scheduled for ${formData.time}`,
+          status: "pending",
+          targetUrl: formData.targetUrl,
+          time: formData.time,
+          payload: JSON.parse(formData.jsonPayload)
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to create task")
+      }
+
+      const data = await response.json()
+      console.log("✅ Task created:", data)
+
+      alert("✅ Task scheduled successfully!")
+      onNavigate("/tasks")
+    } catch (err) {
+      console.error("❌ Error creating task:", err)
+      alert("❌ Failed to schedule task. Check console for details.")
+    }
   }
 
   const timeOptions = [
-    "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", 
+    "09:00", "10:00", "11:00", "12:00", "13:00", "14:00",
     "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"
   ]
 
