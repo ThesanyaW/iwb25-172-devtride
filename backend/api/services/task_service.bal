@@ -1,20 +1,20 @@
 import ballerina/http;
 
-// -------------------------------
 // ✅ Task Data Model
-// -------------------------------
-
-// Each Task will follow this structure
 type Task record {|
-    int id; // unique ID for the task
-    string title; // task title
-    string description?; // optional description
-    string status = "pending"; // default value is "pending"
+    int id;
+    string title;
+    string description?;
+    string status = "pending";
+    string targetUrl;
+    string time;
+    string payload?;
 |};
 
 // Temporary in-memory "database"
 isolated final Task[] tasks = [];
 
+// ✅ Service definition
 service /tasks on new http:Listener(8080) {
 
     // POST /tasks
