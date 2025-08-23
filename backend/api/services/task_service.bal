@@ -1,5 +1,13 @@
 import ballerina/http;
 import ballerina/log;
+import ballerinax/mysql;
+
+mysql:Client db = check new (user = "balletuser",
+    password = "ballet123",
+    database = "balletcron",
+    host = "localhost",
+    port = 3306
+);
 
 // ✅ Task Data Model
 type Task record {|
