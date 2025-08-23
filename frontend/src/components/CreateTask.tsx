@@ -29,18 +29,18 @@ export function CreateTask({ onNavigate }: CreateTaskProps) {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          id: Date.now(), // temporary unique ID
           title: formData.taskName,
           description: `Scheduled for ${formData.time}`,
           status: "pending",
           targetUrl: formData.targetUrl,
           time: formData.time,
-          payload: JSON.parse(formData.jsonPayload)
+          payload: formData.jsonPayload   // ✅ store JSON as string
         })
       })
 
       if (!response.ok) {
-        throw new Error("Failed to create task")
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Failed to create task")
       }
 
       const data = await response.json()
