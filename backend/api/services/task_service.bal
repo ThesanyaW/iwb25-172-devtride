@@ -2,6 +2,7 @@ import ballerina/http;
 import ballerina/log;
 import ballerinax/mysql;
 
+// ✅ MySQL Client
 mysql:Client db = check new (user = "balletuser",
     password = "ballet123",
     database = "balletcron",
@@ -23,17 +24,15 @@ type Task record {|
 // ✅ Response type for API responses
 type ApiResponse record {|
     string message;
-    Task|Task[]|string data?;
+    Task|Task[]|string? data?;
 |};
-
-// ✅ In-memory "database"
-isolated Task[] tasks = [];
 
 // ✅ Service definition
 service /tasks on new http:Listener(8080) {
 
     // POST /tasks
-    resource function post tasks(@http:Payload Task task) returns http:Created|http:BadRequest|error {
+    resource function post tasks(@http:Payload Task task)
+            returns http:Created|http:BadRequest|error {
         log:printInfo("Received task payload: " + task.toString());
 
         // Validate required fields
@@ -46,71 +45,67 @@ service /tasks on new http:Listener(8080) {
             };
         }
 
-        lock {
-            // Create the new task with a unique ID
-            Task createdTask = {
-                id: tasks.length() + 1,
-                title: task.title,
-                description: task.description,
-                status: task.status,
-                targetUrl: task.targetUrl,
-                time: task.time,
-                payload: task.payload
-            };
+        // Insert into MySQL
+        sql:ParameterizedQuery insertQuery =
+            `INSERT INTO tasks (title, description, status, targetUrl, time, payload)
+              VALUES (${task.title}, ${task.description}, ${task.status}, ${task.targetUrl}, ${task.time}, ${task.payload})`;
 
-            tasks.push(createdTask);
-            log:printInfo("Task created: " + createdTask.toString());
+        int result = check db->execute(insertQuery);
+
+        if result == 1 {
+            // Retrieve the last inserted task
+            Task[] newTask = check db->query(
+                `SELECT * FROM tasks ORDER BY id DESC LIMIT 1`,
+                Task
+            );
+
+            log:printInfo("Task created in DB: " + newTask[0].toString());
 
             return <http:Created>{
                 body: <ApiResponse>{
                     message: "Task created successfully",
-                    data: createdTask
+                    data: newTask[0]
                 }
             };
         }
+
+        return <http:BadRequest>{
+            body: <ApiResponse>{message: "Failed to insert task"}
+        };
     }
 
     // GET /tasks
-    resource function get tasks() returns http:Ok {
-        lock {
-            log:printInfo("Retrieving tasks: " + tasks.toString());
-            return <http:Ok>{
-                body: <ApiResponse>{
-                    message: "Tasks retrieved successfully",
-                    data: tasks.clone()
-                }
-            };
-        }
+    resource function get tasks() returns http:Ok|error {
+        Task[] allTasks = check db->query(`SELECT * FROM tasks`, Task);
+
+        log:printInfo("Retrieved tasks from DB: " + allTasks.toString());
+
+        return <http:Ok>{
+            body: <ApiResponse>{
+                message: "Tasks retrieved successfully",
+                data: allTasks
+            }
+        };
     }
 
     // DELETE /tasks/:id
-    resource function delete tasks/[int id]() returns http:Ok|http:NotFound {
-        int index = -1;
+    resource function delete tasks/[int id]() returns http:Ok|http:NotFound|error {
+        int result = check db->execute(`DELETE FROM tasks WHERE id = ${id}`);
 
-        lock {
-            foreach int i in 0 ..< tasks.length() {
-                if tasks[i].id == id {
-                    index = i;
-                    break;
-                }
-            }
-
-            if index == -1 {
-                log:printWarn("Task not found with id: " + id.toString());
-                return <http:NotFound>{
-                    body: <ApiResponse>{
-                        message: "Task not found!"
-                    }
-                };
-            }
-
-            _ = tasks.remove(index);
-            log:printInfo("Task deleted with id: " + id.toString());
-            return <http:Ok>{
+        if result == 0 {
+            log:printWarn("Task not found in DB with id: " + id.toString());
+            return <http:NotFound>{
                 body: <ApiResponse>{
-                    message: "Task deleted successfully!"
+                    message: "Task not found!"
                 }
             };
         }
+
+        log:printInfo("Task deleted from DB with id: " + id.toString());
+        return <http:Ok>{
+            body: <ApiResponse>{
+                message: "Task deleted successfully!"
+            }
+        };
     }
 }
