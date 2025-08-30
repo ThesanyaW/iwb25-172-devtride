@@ -82,8 +82,20 @@ export function ScheduledTasks({ onNavigate }: ScheduledTasksProps) {
     }
   }
 
-  const handleRerun = (taskId: number) => {
-    alert(`Task ${taskId} scheduled for immediate execution`)
+  const handleRerun = async (taskId: number) => {
+    try {
+      const res = await fetch(`http://localhost:8090/scheduler/rerun/${taskId}`, {
+        method: "POST",
+      })
+      if (res.ok) {
+        alert(`⚡ Task ${taskId} rerun successfully!`)
+        fetchTasks() // refresh list
+      } else {
+        alert("❌ Failed to rerun task")
+      }
+    } catch (err) {
+      console.error("❌ Error rerunning task:", err)
+    }
   }
 
   return (
