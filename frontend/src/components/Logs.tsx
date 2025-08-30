@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
@@ -8,93 +9,53 @@ interface LogsProps {
   onNavigate: (route: string) => void
 }
 
-export function Logs({ onNavigate }: LogsProps) {
-  // Mock log data
-  const logs = [
-    {
-      id: 1,
-      time: "2025-01-31 14:30:15",
-      taskName: "Daily API Sync",
-      status: "Success",
-      message: "200 OK - Data synced successfully",
-      duration: "1.2s"
-    },
-    {
-      id: 2,
-      time: "2025-01-31 14:15:22",
-      taskName: "Health Check",
-      status: "Success", 
-      message: "200 OK - Service healthy",
-      duration: "0.5s"
-    },
-    {
-      id: 3,
-      time: "2025-01-31 14:00:18",
-      taskName: "Health Check",
-      status: "Success",
-      message: "200 OK - Service healthy", 
-      duration: "0.4s"
-    },
-    {
-      id: 4,
-      time: "2025-01-31 13:45:33",
-      taskName: "Health Check",
-      status: "Success",
-      message: "200 OK - Service healthy",
-      duration: "0.6s"
-    },
-    {
-      id: 5,
-      time: "2025-01-31 13:30:41",
-      taskName: "Health Check",
-      status: "Failed",
-      message: "Timeout - Request timed out after 30s",
-      duration: "30.0s"
-    },
-    {
-      id: 6,
-      time: "2025-01-31 12:00:11",
-      taskName: "Data Processing",
-      status: "Success",
-      message: "200 OK - Processing completed",
-      duration: "5.8s"
-    },
-    {
-      id: 7,
-      time: "2025-01-31 09:00:05",
-      taskName: "Daily API Sync",
-      status: "Success",
-      message: "200 OK - Data synced successfully",
-      duration: "1.1s"
-    },
-    {
-      id: 8,
-      time: "2025-01-31 02:00:33",
-      taskName: "Backup Database",
-      status: "Failed",
-      message: "500 Internal Server Error - Backup service unavailable",
-      duration: "10.2s"
-    }
-  ]
+interface LogEntry {
+  id: number
+  taskId: number
+  taskTitle: string
+  message: string
+  timestamp: string
+}
 
-  const getStatusBadge = (status: string) => {
-    if (status === "Success") {
-      return (
-        <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-          Success
-        </Badge>
-      )
-    } else {
+export function Logs({ onNavigate }: LogsProps) {
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchLogs = async () => {
+    try {
+      const response = await fetch("http://localhost:8091/logs")
+      if (!response.ok) throw new Error("Failed to fetch logs")
+
+      const data = await response.json()
+      setLogs(data.data || [])
+    } catch (err) {
+      console.error("❌ Error fetching logs:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchLogs()
+  }, [])
+
+  const getStatusBadge = (message: string) => {
+    if (message.toLowerCase().includes("failed") || message.toLowerCase().includes("error")) {
       return (
         <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
           Failed
         </Badge>
       )
     }
+    return (
+      <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+        Success
+      </Badge>
+    )
   }
 
   const handleRefresh = () => {
-    alert("Logs refreshed")
+    fetchLogs()
   }
 
   return (
@@ -130,42 +91,43 @@ export function Logs({ onNavigate }: LogsProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-slate-900">
             <ScrollText className="w-5 h-5" />
-            Recent Activity
+            Recent Activity ({logs.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-slate-200">
-                <TableHead className="text-slate-600">Time</TableHead>
-                <TableHead className="text-slate-600">Task Name</TableHead>
-                <TableHead className="text-slate-600">Status</TableHead>
-                <TableHead className="text-slate-600">Message</TableHead>
-                <TableHead className="text-slate-600 text-right">Duration</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {logs.map((log) => (
-                <TableRow key={log.id} className="border-slate-200">
-                  <TableCell className="text-slate-600 font-mono text-sm">
-                    {log.time}
-                  </TableCell>
-                  <TableCell className="font-medium text-slate-900">
-                    {log.taskName}
-                  </TableCell>
-                  <TableCell>
-                    {getStatusBadge(log.status)}
-                  </TableCell>
-                  <TableCell className="text-slate-600 max-w-md">
-                    <span className="font-mono text-sm">{log.message}</span>
-                  </TableCell>
-                  <TableCell className="text-right text-slate-600 font-mono text-sm">
-                    {log.duration}
-                  </TableCell>
+          {loading ? (
+            <p className="text-slate-500">Loading logs...</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-200">
+                  <TableHead className="text-slate-600">Time</TableHead>
+                  <TableHead className="text-slate-600">Task</TableHead>
+                  <TableHead className="text-slate-600">Status</TableHead>
+                  <TableHead className="text-slate-600">Message</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {logs.map((log) => (
+                  <TableRow key={log.id} className="border-slate-200">
+                    <TableCell className="text-slate-600 font-mono text-sm">
+                      {log.timestamp}
+                    </TableCell>
+                    <TableCell className="font-medium text-slate-900">
+                      {log.taskTitle}{" "}
+                      <span className="text-slate-400 text-xs">#{log.taskId}</span>
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(log.message)}
+                    </TableCell>
+                    <TableCell className="text-slate-600 max-w-md">
+                      <span className="font-mono text-sm">{log.message}</span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
