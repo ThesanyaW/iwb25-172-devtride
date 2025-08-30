@@ -10,10 +10,11 @@ mysql:Client db = check new (user = "balletuser",
     port = 3306
 );
 
-// ✅ Log record type (matches DB table)
+// ✅ Log record type (now includes taskTitle)
 type LogEntry record {|
     int id;
     int taskId;
+    string taskTitle;
     string message;
     string timestamp;
 |};
@@ -27,10 +28,14 @@ type ApiResponse record {|
 // ✅ Service definition
 service /logs on new http:Listener(8091) {
 
-    // GET /logs → fetch all logs
+    // 🔹 GET /logs → fetch all logs with task titles
     resource function get logs() returns http:Ok|http:InternalServerError {
         LogEntry[] logsList = [];
-        var result = db->query("SELECT id, taskId, message, timestamp FROM logs ORDER BY timestamp DESC");
+        string query = "SELECT l.id, l.taskId, t.title AS taskTitle, l.message, l.timestamp " + +
+                        "FROM logs l JOIN tasks t ON l.taskId = t.id " + +
+                        "ORDER BY l.timestamp DESC";
+
+        var result = db->query(query);
 
         if result is stream<record {}, error> {
             error err = <error>result;
@@ -46,6 +51,7 @@ service /logs on new http:Listener(8091) {
             let LogEntry logEntry = {
                 id: <int>row["id"],
                 taskId: <int>row["taskId"],
+                taskTitle: <string>row["taskTitle"],
                 message: <string>row["message"],
                 timestamp: <string>row["timestamp"]
             }
@@ -61,10 +67,14 @@ service /logs on new http:Listener(8091) {
         };
     }
 
-    // GET /logs/:taskId → fetch logs by taskId
+    // 🔹 GET /logs/:taskId → fetch logs for a specific task
     resource function get logs/[int taskId]() returns http:Ok|http:InternalServerError {
         LogEntry[] logsList = [];
-        var result = db->query("SELECT id, taskId, message, timestamp FROM logs WHERE taskId = ?", taskId);
+        string query = "SELECT l.id, l.taskId, t.title AS taskTitle, l.message, l.timestamp " + +
+                        "FROM logs l JOIN tasks t ON l.taskId = t.id " + +
+                        "WHERE l.taskId = ? ORDER BY l.timestamp DESC";
+
+        var result = db->query(query, taskId);
 
         if result is stream<record {}, error> {
             error err = <error>result;
@@ -80,6 +90,7 @@ service /logs on new http:Listener(8091) {
             let LogEntry logEntry = {
                 id: <int>row["id"],
                 taskId: <int>row["taskId"],
+                taskTitle: <string>row["taskTitle"],
                 message: <string>row["message"],
                 timestamp: <string>row["timestamp"]
             }
