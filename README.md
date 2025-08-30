@@ -1,27 +1,26 @@
 # 🎶 Balletcron – Distributed Task Scheduler  
 
 Balletcron is a **distributed microservice orchestration platform** built with **Ballerina (Backend)** and **React + Vite + TypeScript + Tailwind + shadcn (Frontend)**.  
-It automates task scheduling, execution, and monitoring with a **modern dashboard** and **scalable backend**.  
+It automates **task scheduling, execution, and monitoring** with a modern **dashboard** and scalable **backend services**.  
 
 ---
 
 ## 🚀 Features  
 
-### ⚙️ Backend (Ballerina)  
-- **RESTful API with Ballerina** – Provides endpoints for task scheduling and management.  
-- **Task Scheduling with Cron Expressions** – Supports flexible scheduling using cron syntax.  
-- **Database Integration (MySQL)** – Stores tasks, schedules, and logs securely.  
-- **Automatic Task Execution** – Executes scheduled tasks at the defined time intervals.  
-- **Logging System** – Maintains detailed execution logs for monitoring and debugging.  
-- **Error Handling & Validation** – Ensures reliability with input validation and structured error messages.  
-- **Scalable Architecture** – Designed to handle multiple tasks efficiently.  
+### ⚙️ Backend (Ballerina + MySQL)  
+- **Task Service (`task_service.bal`)** – REST API to create, retrieve, and delete tasks.  
+- **Scheduler Engine (`schedule_engine.bal`)** – Executes scheduled tasks at the right time.  
+- **Log Service (`log_service.bal`)** – Stores execution logs for monitoring and debugging.  
+- **Database Integration (MySQL)** – Persistent storage for tasks and logs.  
+- **Error Handling & Validation** – Ensures reliability with structured error messages.  
+- **Scalable Microservices** – Each service runs independently for better orchestration.  
 
 ### 💻 Frontend (React + Vite + Tailwind + shadcn)  
-- **Interactive Dashboard** – Overview of scheduled tasks and system status.  
-- **Task Creation UI** – Form to create and configure new tasks.  
-- **Scheduled Tasks View** – Displays all upcoming tasks with execution details.  
-- **Task Logs View** – Monitors task history and execution logs.  
-- **Modern UI/UX** – Built with **Tailwind CSS** + **shadcn** for clean and responsive design.  
+- **Interactive Dashboard** – Overview of system status and task statistics.  
+- **Create Task UI** – Form to schedule new tasks with JSON payloads.  
+- **Scheduled Tasks View** – Live-updating list of tasks with execution status.  
+- **Task Logs View** – Monitor task execution history and logs.  
+- **Modern UI/UX** – Built with **Tailwind CSS** + **shadcn/ui** for clean, responsive design.  
 
 ---
 
@@ -44,15 +43,17 @@ It automates task scheduling, execution, and monitoring with a **modern dashboar
 ```
 
 Balletcron/
-│── backend/              # Ballerina backend code
-│   ├── ballerina.toml
-│   ├── src/
-│   └── db/               # MySQL schema & migrations
+│── backend/               # Ballerina backend services
+│   ├── task\_service.bal   # Task CRUD REST API
+│   ├── schedule\_engine.bal# Scheduler engine
+│   ├── log\_service.bal    # Logging service
+│   ├── Ballerina.toml
+│   └── db/                # MySQL schema & migrations
 │
-│── frontend/             # React + Vite frontend code
+│── frontend/              # React + Vite frontend
 │   ├── src/
-│   │   ├── components/
-│   │   ├── pages/        # Dashboard, Create Task, Scheduled Tasks, Task Logs
+│   │   ├── components/    # Reusable UI components
+│   │   ├── pages/         # Dashboard, CreateTask, ScheduledTasks, TaskLogs
 │   │   ├── App.tsx
 │   │   └── main.tsx
 │   ├── index.html
@@ -73,16 +74,51 @@ Balletcron/
    CREATE DATABASE balletcron;
 ````
 
-3. Update database credentials in `backend/src/config.bal`.
-4. Run the backend:
+3. Create required tables:
+
+   ```sql
+   -- Tasks Table
+   CREATE TABLE tasks (
+       id INT AUTO_INCREMENT PRIMARY KEY,
+       title VARCHAR(255) NOT NULL,
+       description TEXT,
+       status ENUM('pending','running','completed','failed') DEFAULT 'pending',
+       targetUrl VARCHAR(500) NOT NULL,
+       time VARCHAR(10) NOT NULL, -- e.g. "14:00"
+       payload JSON
+   );
+
+   -- Logs Table
+   CREATE TABLE logs (
+       id INT AUTO_INCREMENT PRIMARY KEY,
+       task_id INT NOT NULL,
+       message TEXT NOT NULL,
+       level ENUM('INFO','WARN','ERROR') DEFAULT 'INFO',
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+   );
+   ```
+4. Update MySQL credentials in each service file (e.g. `task_service.bal`, `schedule_engine.bal`, `log_service.bal`):
+
+   ```ballerina
+   mysql:Client db = check new (user = "balletuser",
+       password = "ballet123",
+       database = "balletcron",
+       host = "localhost",
+       port = 3306
+   );
+   ```
+5. Run each service (in separate terminals):
 
    ```bash
-   bal run
+   bal run task_service.bal
+   bal run schedule_engine.bal
+   bal run log_service.bal
    ```
 
 ### 🎨 Frontend Setup (React + Vite)
 
-1. Navigate to frontend folder:
+1. Navigate to the frontend folder:
 
    ```bash
    cd frontend
@@ -92,7 +128,7 @@ Balletcron/
    ```bash
    npm install
    ```
-3. Start development server:
+3. Start the dev server:
 
    ```bash
    npm run dev
@@ -104,9 +140,9 @@ Balletcron/
 ## 📸 UI Screens
 
 * **📊 Dashboard** – Overview of system status and tasks
-* **📝 Create Task** – Add and configure new tasks
-* **⏰ Scheduled Tasks** – List of tasks with cron schedules
-* **📜 Task Logs** – Execution history & logs
+* **📝 Create Task** – Add and configure new tasks with JSON payloads
+* **⏰ Scheduled Tasks** – Live-updating list of tasks with execution status
+* **📜 Task Logs** – Task execution history and monitoring
 
 ---
 
@@ -121,7 +157,7 @@ Balletcron/
 3. Commit changes ✨
 
    ```bash
-   git commit -m "Add new feature"
+   git commit -m "Add feature XYZ"
    ```
 4. Push to your fork 🚀
 
@@ -134,6 +170,6 @@ Balletcron/
 
 ## 📜 License
 
-MIT License © 2025 Balletcron
+MIT License © 2025 **Balletcron**
 
 ```
