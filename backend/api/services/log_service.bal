@@ -1,5 +1,6 @@
 import ballerina/http;
 import ballerina/log;
+import ballerina/sql;
 import ballerinax/mysql;
 
 // ✅ MySQL client
@@ -31,78 +32,42 @@ service /logs on new http:Listener(8091) {
     // 🔹 GET /logs → fetch all logs with task titles
     resource function get logs() returns http:Ok|http:InternalServerError {
         LogEntry[] logsList = [];
-        string query = "SELECT l.id, l.taskId, t.title AS taskTitle, l.message, l.timestamp " + +
-                        "FROM logs l JOIN tasks t ON l.taskId = t.id " + +
-                        "ORDER BY l.timestamp DESC";
-
-        var result = db->query(query);
-
-        if result is stream<record {}, error> {
-            error err = <error>result;
-            log:printError("❌ Failed to fetch logs", err);
-            return <http:InternalServerError>{
-                body: {message: "Error fetching logs"}
-            };
+        sql:ParameterizedQuery query = `SELECT l.id, l.taskId, t.title AS taskTitle, l.message, l.timestamp FROM logs l JOIN tasks t ON l.taskId = t.id ORDER BY l.timestamp DESC`;
+        var logStream = db->query(query, LogEntry);
+        if logStream is stream<LogEntry, sql:Error?> {
+            while true {
+                record {|LogEntry value;|}|sql:Error|() entry = logStream.next();
+                if entry is record {|LogEntry value;|} {
+                    logsList.push(entry.value);
+                } else if entry is sql:Error {
+                    log:printError("❌ Error while streaming logs", entry);
+                    return <http:InternalServerError>{body: {message: "Error fetching logs"}};
+                } else {
+                    break;
+                }
+            }
+            return <http:Ok>{body: {message: "Logs retrieved successfully", data: logsList}};
         }
-
-        // Convert results
-        stream<record {}, error> logStream = <stream<record {}, error>>result;
-        check from record {} row in logStream
-            let LogEntry logEntry = {
-                id: <int>row["id"],
-                taskId: <int>row["taskId"],
-                taskTitle: <string>row["taskTitle"],
-                message: <string>row["message"],
-                timestamp: <string>row["timestamp"]
-            }
-            do {
-                logsList.push(logEntry);
-            };
-
-        return <http:Ok>{
-            body: <ApiResponse>{
-                message: "Logs retrieved successfully",
-                data: logsList
-            }
-        };
     }
 
     // 🔹 GET /logs/:taskId → fetch logs for a specific task
     resource function get logs/[int taskId]() returns http:Ok|http:InternalServerError {
         LogEntry[] logsList = [];
-        string query = "SELECT l.id, l.taskId, t.title AS taskTitle, l.message, l.timestamp " + +
-                        "FROM logs l JOIN tasks t ON l.taskId = t.id " + +
-                        "WHERE l.taskId = ? ORDER BY l.timestamp DESC";
-
-        var result = db->query(query, taskId);
-
-        if result is stream<record {}, error> {
-            error err = <error>result;
-            log:printError("❌ Failed to fetch logs for task " + taskId.toString(), err);
-            return <http:InternalServerError>{
-                body: {message: "Error fetching logs"}
-            };
+        sql:ParameterizedQuery query = `SELECT l.id, l.taskId, t.title AS taskTitle, l.message, l.timestamp FROM logs l JOIN tasks t ON l.taskId = t.id WHERE l.taskId = ${taskId} ORDER BY l.timestamp DESC`;
+        var logStream = db->query(query, LogEntry);
+        if logStream is stream<LogEntry, sql:Error?> {
+            while true {
+                record {|LogEntry value;|}|sql:Error|() entry = logStream.next();
+                if entry is record {|LogEntry value;|} {
+                    logsList.push(entry.value);
+                } else if entry is sql:Error {
+                    log:printError("❌ Error while streaming logs for task " + taskId.toString(), entry);
+                    return <http:InternalServerError>{body: {message: "Error fetching logs"}};
+                } else {
+                    break;
+                }
+            }
+            return <http:Ok>{body: {message: "Logs retrieved successfully for taskId " + taskId.toString(), data: logsList}};
         }
-
-        // Convert results
-        stream<record {}, error> logStream = <stream<record {}, error>>result;
-        check from record {} row in logStream
-            let LogEntry logEntry = {
-                id: <int>row["id"],
-                taskId: <int>row["taskId"],
-                taskTitle: <string>row["taskTitle"],
-                message: <string>row["message"],
-                timestamp: <string>row["timestamp"]
-            }
-            do {
-                logsList.push(logEntry);
-            };
-
-        return <http:Ok>{
-            body: <ApiResponse>{
-                message: "Logs retrieved successfully for taskId " + taskId.toString(),
-                data: logsList
-            }
-        };
     }
 }
