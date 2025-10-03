@@ -43,12 +43,13 @@ It automates **task scheduling, execution, and monitoring** with a modern **dash
 ```
 
 Balletcron/
-│── backend/               # Ballerina backend services
-│   ├── task\_service.bal   # Task CRUD REST API
-│   ├── schedule\_engine.bal# Scheduler engine
-│   ├── log\_service.bal    # Logging service
+│── backend/
+    ├── services/                  # Ballerina backend services
+│       ├── task_service.bal       # Task CRUD REST API
+│       ├── schedule_engine.bal    # Scheduler engine
+│       ├── log_service.bal        # Logging service
 │   ├── Ballerina.toml
-│   └── db/                # MySQL schema & migrations
+│   
 │
 │── frontend/              # React + Vite frontend
 │   ├── src/
@@ -72,7 +73,7 @@ Balletcron/
 2. Install MySQL and create a database:  
    ```sql
    CREATE DATABASE balletcron;
-````
+   ````
 
 3. Create required tables:
 
